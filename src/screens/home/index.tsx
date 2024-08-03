@@ -1,15 +1,16 @@
-import React from "react";
+import React, { useMemo } from "react";
 import styled from "styled-components/native";
 import { HomeScreenProp } from "src/navigation/types";
-import { ColorProps } from "src/shared/types";
+import { ColorProps, IHomeResponse } from "src/shared/types";
 import {
   ImageBackground,
-  ScrollView,
   StatusBar,
   Image,
+  RefreshControl,
   View,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSelector } from "react-redux";
@@ -18,6 +19,8 @@ import logo from "src/assets/logo.png";
 import motif from "src/assets/motif.png";
 import { Text } from "react-native";
 import { ImageSlider } from "react-native-image-slider-banner";
+import { useQuery } from "@tanstack/react-query";
+import { HttpClient } from "src/api";
 const { width } = Dimensions.get("window");
 
 function Home(props: HomeScreenProp) {
@@ -25,14 +28,59 @@ function Home(props: HomeScreenProp) {
     (state: RootState) => state.dataUser.access_token
   );
 
+  const { data, isLoading, isFetching, isRefetching, refetch } = useQuery(
+    ["home"],
+    async () => {
+      const response = await HttpClient.get<IHomeResponse>("/api/home", {
+        headers: {
+          Authorization: `Bearer ${dataUser}`,
+        },
+      });
+      return response.data;
+    }
+  );
+
+  const bannerData = useMemo(() => {
+    return data?.result?.banner?.map((item) => ({ img: item }));
+  }, [data]);
+
   useFocusEffect(() => {
     if (!dataUser) return props.navigation.navigate("auth" as never);
   });
 
-  return (
-    <HomeContainer color={"white"}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView>
+  const onRefresh = React.useCallback(() => {
+    setTimeout(() => {
+      refetch();
+    }, 1000);
+  }, []);
+
+  const renderMain = useMemo(() => {
+    if (isLoading || isFetching) {
+      return (
+        <HomeContainer color={"white"}>
+          <StatusBar barStyle="dark-content" />
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <ActivityIndicator size={50} />
+            <Text>Loading...</Text>
+          </View>
+        </HomeContainer>
+      );
+    }
+    return (
+      <HomeContainer
+        color={"white"}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+        }
+      >
+        <StatusBar barStyle="dark-content" />
+
         <View style={{ marginVertical: -35, paddingHorizontal: 16 }}>
           <Image
             style={{
@@ -59,9 +107,9 @@ function Home(props: HomeScreenProp) {
               }}
             >
               <View style={{ marginBottom: 10 }}>
-                <Text>Good afternoon</Text>
+                <Text>{data?.result.greeting}</Text>
                 <Text style={{ fontWeight: "bold", fontSize: 16 }}>
-                  Guntur Saputro
+                  {data?.result.name}
                 </Text>
               </View>
 
@@ -74,7 +122,9 @@ function Home(props: HomeScreenProp) {
               >
                 <TouchableOpacity
                   onPress={() =>
-                    props.navigation.navigate("modal_preview" as never)
+                    props.navigation.navigate("modal_preview", {
+                      url: data?.result?.qrcode,
+                    } as never)
                   }
                   style={{
                     width: 50,
@@ -85,7 +135,7 @@ function Home(props: HomeScreenProp) {
                   }}
                 >
                   <Image
-                    source={logo}
+                    source={{ uri: data?.result.qrcode }}
                     resizeMode="contain"
                     style={{ width: 50, height: 50, borderRadius: 50 }}
                   />
@@ -112,7 +162,9 @@ function Home(props: HomeScreenProp) {
                     }}
                   >
                     <Text>Saldo</Text>
-                    <Text style={{ fontWeight: "bold" }}>Rp 279.000</Text>
+                    <Text style={{ fontWeight: "bold" }}>
+                      Rp. {data?.result.saldo}
+                    </Text>
                   </View>
                   <View
                     style={{
@@ -122,7 +174,7 @@ function Home(props: HomeScreenProp) {
                   >
                     <Text>Point</Text>
                     <Text style={{ fontWeight: "bold", color: "green" }}>
-                      2500
+                      {data?.result.point}
                     </Text>
                   </View>
                 </View>
@@ -131,8 +183,8 @@ function Home(props: HomeScreenProp) {
           </ImageBackground>
         </View>
         <ImageSlider
-          data={[{ img: logo }, { img: logo }, { img: logo }]}
-          localImg
+          data={(bannerData as any) ?? []}
+          localImg={false}
           caroselImageStyle={{
             resizeMode: "contain",
             height: 200,
@@ -150,9 +202,11 @@ function Home(props: HomeScreenProp) {
           autoPlay={true}
           timer={2000}
         />
-      </ScrollView>
-    </HomeContainer>
-  );
+      </HomeContainer>
+    );
+  }, [data, isFetching, isLoading]);
+
+  return renderMain;
 }
 
 const HomeContainer = styled.ScrollView<ColorProps>`

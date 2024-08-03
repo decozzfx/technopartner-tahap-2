@@ -2,11 +2,15 @@ import React from "react";
 import { PreviewModalProp } from "src/navigation/types";
 
 import BaseModal from "src/modals/BaseModal";
-import logo from "src/assets/logo.png";
 import { Image } from "react-native";
 
 function ModalPreview(props: PreviewModalProp) {
-  const { navigation } = props;
+  const {
+    navigation,
+    route: {
+      params: { url },
+    },
+  } = props;
 
   return (
     <BaseModal navigation={navigation}>
@@ -16,7 +20,7 @@ function ModalPreview(props: PreviewModalProp) {
           height: 300,
           resizeMode: "contain",
         }}
-        source={logo}
+        source={{ uri: url }}
       />
     </BaseModal>
   );

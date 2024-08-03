@@ -9,7 +9,7 @@ export type RootStackParamList = {
   onboarding: undefined;
   auth: undefined;
   bottom_bar: NavigatorScreenParams<BottomBarParamList>;
-  modal_preview: undefined;
+  modal_preview: { url: string };
 };
 
 export type BottomBarParamList = {

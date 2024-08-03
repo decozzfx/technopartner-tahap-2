@@ -1,16 +1,53 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components/native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { RootState } from "src/redux/AppStore";
-import { Dimensions, FlatList, Image, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Text,
+  View,
+} from "react-native";
 import TabHeader from "src/components/TabHeader";
 import { useQuery } from "@tanstack/react-query";
 import { HttpClient } from "src/api";
 import { ICategory, IMenuResponse } from "src/shared/types";
 const { width } = Dimensions.get("window");
 
+const lisTabHeader = [
+  {
+    id: "1",
+    label: "Seasonal Product",
+    value: "Seasonal Product",
+  },
+  {
+    id: "2",
+    label: "Best Seller",
+    value: "Best Seller",
+  },
+  {
+    id: "3",
+    label: "Coffee",
+    value: "Coffee",
+  },
+  {
+    id: "4",
+    label: "Cold Brew",
+    value: "Cold Brew",
+  },
+  {
+    id: "5",
+    label: "Chocolate",
+    value: "Chocolate",
+  },
+];
+
 function Menu() {
+  const flatlistRef = useRef<FlatList<ICategory>>(null);
+
   const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   const dataUser = useSelector((state: RootState) => state.dataUser);
@@ -33,35 +70,15 @@ function Menu() {
     return Object.values(data?.result ?? {});
   }, [data]);
 
+  const scrollToIndex = (index: number) => {
+    setTimeout(() => {
+      flatlistRef?.current?.scrollToIndex({ animated: true, index: index });
+    }, 300);
+  };
+
   const tabBarHeight = useBottomTabBarHeight();
 
-  const lisTabHeader = [
-    {
-      id: "1",
-      label: "Seasonal Product",
-      value: "Seasonal Product",
-    },
-    {
-      id: "2",
-      label: "Best Seller",
-      value: "Best Seller",
-    },
-    {
-      id: "3",
-      label: "Coffee",
-      value: "Coffee",
-    },
-    {
-      id: "4",
-      label: "Cold Brew",
-      value: "Cold Brew",
-    },
-    {
-      id: "5",
-      label: "Chocolate",
-      value: "Chocolate",
-    },
-  ];
+  if (!dataList) return <ActivityIndicator size={50} />;
 
   return (
     <Container color={"white"} tabBarHeight={tabBarHeight}>
@@ -79,10 +96,15 @@ function Menu() {
         MENU
       </Text>
       <TabHeader
+        activeIndex={activeTabIndex}
         option={lisTabHeader}
-        onSelectedIndex={(index) => setActiveTabIndex(index)}
+        onSelectedIndex={(index) => {
+          setActiveTabIndex(index);
+          scrollToIndex(index);
+        }}
       />
       <FlatList
+        ref={flatlistRef}
         data={dataList?.[0] ?? []}
         style={{ backgroundColor: "#f1f1f1" }}
         renderItem={({ item }: { item: ICategory }) => (
@@ -127,7 +149,7 @@ interface ContainerProps {
 const Container = styled.View<ContainerProps>`
   flex: 1;
   background-color: ${({ color }) => color};
-  padding: 16px 0px ${({ tabBarHeight }) => tabBarHeight + 16}px 0px;
+  padding: 16px 0px 0px 0px;
 `;
 
 const ScrollContainer = styled.ScrollView`

@@ -29,3 +29,17 @@ interface Menu {
   photo: string;
   price: number;
 }
+
+export interface IHomeResponse {
+  result: Result;
+  status: string;
+}
+
+interface Result {
+  banner: string[];
+  greeting: string;
+  name: string;
+  point: number;
+  qrcode: string;
+  saldo: number;
+}
